@@ -1,3 +1,4 @@
+#多分类
 import warnings
 warnings.filterwarnings('ignore')
 import pandas as pd
@@ -21,17 +22,19 @@ res = None
 train_samples = []
 test_samples = []
 for mall_id in tqdm(train.mall_id.unique()):
+    #选出一个mall
     sub_train = train[train.mall_id == mall_id]
     sub_test = test[test.mall_id == mall_id]
 
     train_set = []
+    #划分train的wifi_infos，统计每一个user不同wifi的强度
     for index, row in sub_train.iterrows():
         wifi_dict = {}
         for wifi in row.wifi_infos.split(';'):
             bssid, signal, flag = wifi.split('|')
             wifi_dict[bssid] = int(signal)
         train_set.append(wifi_dict)
-    
+    #划分test的wifi_infos
     test_set = []
     for index, row in sub_test.iterrows():
         wifi_dict = {}
@@ -39,7 +42,8 @@ for mall_id in tqdm(train.mall_id.unique()):
             bssid, signal, flag = wifi.split('|')
             wifi_dict[bssid] = int(signal)
         test_set.append(wifi_dict)
-        
+    
+    #思路和建立稀疏矩阵一样
     v = DictVectorizer(sparse=False, sort=False)
     train_set = v.fit_transform(train_set)
     test_set = v.transform(test_set)
@@ -85,6 +89,7 @@ for mall_id in tqdm(train.mall_id.unique()):
     preds=model.predict(xgbtest)
     for row, pred in enumerate(preds):
         row_id = sub_test['row_id'].iloc[row]
+        #输出概率，排序
         predSorted = (-pred).argsort()
         for i in range(10):
             test_samples.append({'row_id':row_id,'shop_id':lbl.inverse_transform(predSorted[i]),'prob':pred[predSorted[i]]})
